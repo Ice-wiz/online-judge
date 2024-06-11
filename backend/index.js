@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const app = require("./app");
 const config = require("./config/config");
-const TestCase = require("./models/testCase.model.js");
-const Problem = require("./models/problem.model.js");
 
 mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
   console.log("Connected to MongoDB");

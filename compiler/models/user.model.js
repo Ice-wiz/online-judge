@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
         match: [
             /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
             'Please add a valid email'
-        ]
+        ] 
     },
     password: {
         type: String,

@@ -46,6 +46,7 @@ const ProblemDetails = () => {
             // Send the POST request with URL-encoded data
             const response = await axios.post('http://localhost:3000/run', params.toString(), {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                withCredentials:true
             });
 
             // Ensure the response data is a string for safe rendering
@@ -68,13 +69,19 @@ const ProblemDetails = () => {
     const handleSubmitCode = async () => {
         setSubmitting(true);
         setVerdicts([]); // Clear previous verdicts
-
+    
         try {
             const response = await axios.post('http://localhost:3000/submit', {
                 code,
                 problemId: id
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Credentials': true,
+                },
             });
-
+    
             // Process the response and set the verdicts
             if (response.data.success) {
                 setVerdicts(response.data.verdicts);
@@ -88,6 +95,7 @@ const ProblemDetails = () => {
             setSubmitting(false);
         }
     };
+    
 
     if (loading) return <p>Loading problem details...</p>;
     if (error) return <p className="text-red-500">Error: {typeof error === 'string' ? error : JSON.stringify(error)}</p>;

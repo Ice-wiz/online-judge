@@ -12,7 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // enable cors
 
-const allowedOrigins = ['http://localhost:5173']; // Your frontend origin
+const allowedOrigins = ['http://localhost:5173','http://localhost:3000']; // Your frontend origin
 
 app.use(cors({
   origin: function (origin, callback) {

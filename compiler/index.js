@@ -1,18 +1,18 @@
 // Import required modules
+const cookieParser = require("cookie-parser")
 const express = require('express');
 const cors = require('cors');
 const { generateFile } = require('./generateFile');
 const { generateInputFile } = require('./generateInputFile');
 const { executeCpp } = require('./executeCpp');
-const Problem = require('./models/problem.model');
-const Submission = require('./models/submission.model');
-
+const axios = require('axios'); // To interact with the backend service
+const config = require('./config/config');
+const auth = require('./middlewares/auth');
 
 // Create an instance of express
 const app = express();
-
+app.use(cookieParser())
 // Middleware setup
-
 const allowedOrigins = ['http://localhost:5173']; // Your frontend origin
 
 app.use(cors({
@@ -28,51 +28,56 @@ app.use(cors({
     credentials: true // Allow cookies and other credentials to be sent
 }));
 
-
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-
 
 // Define routes
 app.get("/", (req, res) => {
     res.json({ online: 'compiler' });
 });
 
+// Endpoint to run code with custom input
 app.post("/run", async (req, res) => {
-    console.log("hii");
+    console.log("Run code request received");
     const { language = 'cpp', code, input } = req.body;
-    if (code === undefined) {
-        return res.status(404).json({ success: false, error: "Empty code!" });
+    if (!code) {
+        return res.status(400).json({ success: false, error: "Empty code!" });
     }
     try {
         const filePath = await generateFile(language, code);
         const inputPath = await generateInputFile(input);
         const output = await executeCpp(filePath, inputPath);
-        console.log(output);
+        console.log("Code execution output:", output);
         res.json({ output });
     } catch (error) {
-        res.status(500).json({ error: error });
+        console.error("Error executing code:", error);
+        res.status(500).json({ error: error.message });
     }
 });
 
-
-app.post("/submit", async (req, res) => {
+// Endpoint to submit code and validate against problem test cases
+app.post("/submit", auth, async (req, res) => {
+    console.log("yesssss")
     const { language = "cpp", code, problemId } = req.body;
+    const id = problemId
 
-    if (code === undefined) {
+    if (!code) {
         return res.status(400).json({ success: false, error: "Empty code!" });
     }
-
+    console.log("jere")
     try {
-        const problem = await Problem.findById(problemId).populate('testCases');
+        console.log("in try")
+        const response = await axios.get(`http://localhost:8000/v1/problems/${id}`, {
+            withCredentials: true // Include cookies in the request
+        });
+        const problem = response.data;
+        console.log(problem);
 
         if (!problem) {
             return res.status(404).json({ message: 'Problem not found' });
         }
 
-        const {testCases} = problem;
+        const { testCases } = problem;
         const results = [];
 
         // Execute code with each test case
@@ -85,7 +90,7 @@ app.post("/submit", async (req, res) => {
                 const output = await executeCpp(filePath, inputPath);
                 
                 // Compare output with expected output
-                const verdict = (output === expectedOutput) ? 'Accepted' : 'Wrong Answer';
+                const verdict = (output.trim() === expectedOutput.trim()) ? 'Accepted' : 'Wrong Answer';
                 results.push({ testCase, output, verdict });
             } catch (error) {
                 console.error('Error executing code:', error);
@@ -96,24 +101,21 @@ app.post("/submit", async (req, res) => {
         // Determine overall verdict based on test case results
         const overallVerdict = results.every(result => result.verdict === 'Accepted') ? 'Accepted' : 'Wrong Answer';
 
-        // // Save submission details to the database
-        // const submission = new Submission({
-        //     user: req.user._id, // Assuming user details are available in req.user
+        // Save submission details to the backend
+        // await axios.post('http://localhost:8000/v1/submissions', {
         //     problem: problemId,
         //     verdict: overallVerdict,
-        //     submittedAt: new Date()
+        //     submittedAt: new Date(),
+        //     results: results // Include detailed test case results
         // });
-        // await submission.save();
 
-        return res.status(200).json({ success: true, verdict: overallVerdict, results: results });
+        // return res.status(200).json({ success: true, verdict: overallVerdict, results });
     } catch (err) {
-        console.error('Error handling submission:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
 
-
-// Start the server
-app.listen(3000, () => {
-    console.log("Server is listening on port 3000!");
+const PORT = config.port;
+app.listen(PORT, () => {
+    console.log(`Compiler service is listening on port ${PORT}`);
 });

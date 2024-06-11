@@ -3,7 +3,10 @@ const Problem = require('../models/problem.model');
 const TestCase = require('../models/testCase.model');
 
 const getProblemById = async (req, res) => {
+
+    console.log("joo")
     const { id } = req.params; // Get the problem ID from the URL
+    console.log("hello")
 
     try {
         // Find the problem by ID
