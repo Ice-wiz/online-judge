@@ -1,7 +1,7 @@
 const express = require("express");
 const authController = require("../../controllers/authController");
 const cookieParser = require("cookie-parser")
-const auth = require("../../middlewares/auth");
+const auth = require("../../../compiler/middlewares/auth");
 
 const router = express.Router();
 
